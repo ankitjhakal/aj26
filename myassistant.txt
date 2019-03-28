@@ -1,0 +1,236 @@
+import io
+import speech_recognition as sr
+import pyttsx3
+from PyDictionary import PyDictionary
+import os
+import time,datetime
+import webbrowser
+import wikipedia
+import nltk
+from weather import Weather, Unit
+from nltk.corpus import stopwords
+#from nltk.tokenize import sent_tokenize, word_tokenize
+from nltk.tokenize import word_tokenize
+import psutil
+from nltk.corpus import wordnet
+def listen():
+        r.dynamic_energy_thresold=False
+        with sr.Microphone() as source:
+             r.adjust_for_ambient_noise(source)      
+             print ("say something")
+             audio = r.listen(source)
+        try:
+                 #global text
+                 text=r.recognize_google(audio)
+                 print ("you said: " + text)
+                 return text 
+        except sr.UnknownValueError:
+                   #speak("say keyword")
+                   return ("")
+def speak(data):
+           engine = pyttsx3.init()
+           voices=engine.getProperty('voices')
+           rate=engine.getProperty('rate')
+           engine.setProperty('rate',rate-60)
+           engine.setProperty('voice','HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\MS-Anna-1033-20-DSK')    
+           engine.say(data)
+           engine.runAndWait()
+def wiki(data):
+           text=wikipedia.summary(data,sentences=2)
+           print(text)
+           speak(text)
+def search(data):  
+           asw=data
+           if( asw[0]=='how' and asw[1]=='you'):
+               speak("I am fine")
+           elif(asw[0]=='what' or asw[0]=='tell'):
+               syn=syn123('time')
+               if asw[1] in syn:
+                   print(time.ctime())
+                   speak(time.ctime())
+           syn=syn123('open')
+           #print(type(syn))
+           #syn.append('start')
+           x=(asw[0] in syn)
+           y=(asw[1] in syn)
+           if(x or y):       
+               if(x==True):
+                   webbrowser.open('http://www.'+asw[1]+'.com')
+               else:
+                   webbrowser.open('http://www.'+asw[0]+'.com')
+           syn=syn123('start')
+           #syn.append('open')
+           x=(asw[0] in syn)
+           y=(asw[1] in syn)
+           if(x or y):
+               if(x==True):
+                    os.system("gnome-"+asw[1])
+               else:
+                    os.system("gnome-"+asw[0]) 
+           syn=syn123('mean')
+           x=(asw[0] in syn)
+           y=(asw[1] in syn)
+           if(x or y):
+               if(x==True):
+                   wiki(asw[1])
+               else:
+                   wiki(asw[0])
+           syn=syn123('show')
+           #syn.append("where")
+           if asw[0] in syn:
+                  if(asw[1]=='map'):      
+                      location=asw[2]
+                  else:
+                      location=asw[1]
+                  speak("Hold on ankit, I will show you where " + location + " is.")
+                  url="https://www.google.co.in/maps/place/"+location+"/search?q{}/hl=en"
+                  webbrowser.open_new_tab(url)
+           x=(asw[0]=='temperature')
+           y=(asw[1]=='temperature')
+           if ( x or y ):
+               if(x==True):
+                   temp(asw[1])
+               else:
+                   temp(asw[0])
+           x=(asw[0]=='weather')
+           y=(asw[1]=='weather')
+           n=len(asw)
+           if ( x or y ):
+               if(n<=5):
+                   if(asw[n-3]=='next'):
+                       forecast('jaipur',asw[n-3],asw[n-2])
+                   if(asw[n-3]=='after'):
+                       forecast('jaipur',asw[n-3],asw[n-2])
+               if(n>5):
+                   if(x==True):
+                        if(asw[1]=='condition'):
+                            forecast(asw[2],asw[n-3],asw[n-2])
+                        else:
+                            forecast(asw[1],asw[n-3],asw[n-2])
+                   else:
+                        if(asw[2]=='condition'):
+                            if(n==6):
+                                forecast('jaipur',asw[n-3],asw[n-2])
+                            else:
+                                forecast(asw[n-4],asw[n-3],asw[n-2])
+                        else:
+                            if(n==6):
+                                forecast(asw[n-4],asw[n-3],asw[n-2])
+          
+           x=(asw[0]=='battery')
+           y=(asw[1]=='battery')
+           if(x or y):
+               print(psutil.sensors_battery())
+               speak(psutil.sensors_battery())
+           x=(asw[0]=="alarm")
+           y=(asw[1]=="alarm")
+           n=len(asw)
+           if(x or y):
+               now=datetime.datetime.now()
+               print(now)
+               alarm_time = datetime.datetime.combine(now.date(), datetime.time(17, 30, 0))
+               time.sleep((alarm_time - now).total_seconds())
+               webbrowser.open("/home/ankit/Music/Raftaar.mp3")                         
+           if(asw[1]=='music' or asw[1]=='song'):
+              webbrowser.open("/home/ankit/Music")
+           if(asw[1]=='video' ):
+              webbrowser.open("/home/ankit/Videos")
+           n=len(asw)
+           if(asw[1]=='volume' or asw[1]=='sound'):
+               if(asw[0]=='increase'):
+                   os.system("amixer -D pulse sset Master"+" "+asw[n-1]+"%+")
+               elif(asw[0]=='decrease'):
+                   os.system("amixer -D pulse sset Master 50%-")
+               else:
+                   os.system("amixer -D pulse sset Master toggle")
+           #if search in asw:
+               #os.system("find / -type f -name "*.xls"")
+      
+              
+         
+           
+                   
+def forecast(data,data1,n):
+           count=0
+           print(count)
+           weather = Weather(unit=Unit.CELSIUS)
+           location = weather.lookup_by_location(data)
+           forecasts = location.forecast
+           if(data1=='after'):          
+               for forecast in forecasts:
+                   if(count<int(n)):
+                       count+=1
+                       continue
+                   print(forecast.text)
+                   print(forecast.date)
+                   print(forecast.high)
+                   print(forecast.low)
+           else:
+               for forecast in forecasts:                   
+                   print(forecast.text)
+                   print(forecast.date)
+                   print(forecast.high)
+                   print(forecast.low)
+                   if(count>=int(n)):
+                       break
+                   count+=1
+                      
+                   
+                   
+    
+           
+
+
+def temp(data):
+           weather = Weather(unit=Unit.CELSIUS)
+           location = weather.lookup_by_location(data)
+           condition = location.condition
+           print(condition.temp)                   
+                   
+               
+
+def npl(data):
+           example_sent = data
+           stop_words = set(stopwords.words('english'))
+           word_tokens = word_tokenize(example_sent)
+           filtered_sentence = [w for w in word_tokens if not w in stop_words]
+           filtered_sentence = []
+           for w in word_tokens:
+               if w not in stop_words:
+                    filtered_sentence.append(w)
+           print(word_tokens)
+           print(filtered_sentence)
+           return filtered_sentence
+
+def syn123(data):
+           synonyms = []
+           #antonyms = []
+           for syn in wordnet.synsets(data):
+               for l in syn.lemmas():
+                   synonyms.append(l.name())
+                   #if l.antonyms():
+                       #antonyms.append(l.antonyms()[0].name())
+           #print(set(synonyms))
+           #print(set(antonyms))
+           return set(synonyms)
+
+
+
+while(1):           
+       r =sr.Recognizer()
+       data=listen()
+       if(data==""):
+           continue
+       if(data=="start now"):
+           speak(" dear friend what can i do for you")
+           while(1):
+               r =sr.Recognizer()
+               data=listen()
+               if(data==""):
+                   continue
+               asw=npl(data)
+               search(asw)
+       #t=search(data)
+       #if(t==0):
+       #wiki(data)
+
